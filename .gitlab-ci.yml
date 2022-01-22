@@ -7,6 +7,7 @@ build:
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
     - apk add --no-cache docker-cli-buildx
+    - docker buildx create --name BuildX --use
   script:
     - docker buildx build
       --platform linux/amd64,linux/arm64,linux/arm/v7
