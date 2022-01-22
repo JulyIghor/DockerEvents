@@ -1,3 +1,6 @@
+variables:
+  PLATFORMS: "linux/amd64,linux/arm64,linux/386,linux/arm/v7,linux/ppc64le,linux/arm64/v8,linux/arm/v6,linux/arm/v7,linux/s390x"
+
 build:
   image: docker:latest
   services:
@@ -10,7 +13,7 @@ build:
     - docker buildx create --name BuildX --use
   script:
     - docker buildx build
-      --platform linux/amd64,linux/arm64,linux/arm/v7
+      --platform ${PLATFORMS}
       --compress --push
       -t ${CI_REGISTRY_IMAGE} .
   only:
