@@ -7,7 +7,7 @@ build:
     - apk add --no-cache docker-cli-buildx
     - docker buildx create --name BuildX --use
   script:
-    - PLATFORMS=`docker buildx inspect --bootstrap | grep Platforms | cut -d ' ' -f 1 --complement`
+    - PLATFORMS=`docker buildx inspect --bootstrap | grep Platforms | cut -d ' ' -f 1`
     - echo Building for platforms ${PLATFORMS}
     - docker buildx build
       --platform "${PLATFORMS}"
