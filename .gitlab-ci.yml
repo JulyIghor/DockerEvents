@@ -1,18 +1,14 @@
-variables:
-  PLATFORMS: "linux/amd64,linux/arm64,linux/386,linux/arm/v7,linux/ppc64le,linux/arm64/v8,linux/arm/v6,linux/arm/v7,linux/s390x"
-
 build:
   image: docker:latest
-  services:
-    - docker:dind
   stage: build
   allow_failure: false
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
     - apk add --no-cache docker-cli-buildx
     - docker buildx create --name BuildX --use
-    - docker buildx inspect --bootstrap
   script:
+    - PLATFORMS=`docker buildx inspect --bootstrap | grep Platforms | cut -d ' ' -f 1 --complement`
+    - echo Building for platforms: ${PLATFORMS}
     - docker buildx build
       --platform ${PLATFORMS}
       --compress --push
