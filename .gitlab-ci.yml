@@ -1,4 +1,7 @@
 build:
+  image: docker:latest
+  services:
+    - docker:dind
   stage: build
   allow_failure: false
   before_script:
@@ -10,4 +13,3 @@ build:
     - docker push ${CI_REGISTRY_IMAGE}
   only:
     - main
-
