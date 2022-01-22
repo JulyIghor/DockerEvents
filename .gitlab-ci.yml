@@ -8,9 +8,9 @@ build:
     - docker buildx create --name BuildX --use
   script:
     - PLATFORMS=`docker buildx inspect --bootstrap | grep Platforms | cut -d ' ' -f 1 --complement`
-    - echo Building for platforms: ${PLATFORMS}
+    - echo Building for platforms ${PLATFORMS}
     - docker buildx build
-      --platform ${PLATFORMS}
+      --platform "${PLATFORMS}"
       --compress --push
       -t ${CI_REGISTRY_IMAGE} .
   only:
