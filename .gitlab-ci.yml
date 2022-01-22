@@ -1,0 +1,14 @@
+build:
+  stage: build
+  allow_failure: false
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker build
+      --compress --pull
+      -t ${CI_REGISTRY_IMAGE} .
+    - docker push ${CI_REGISTRY_IMAGE}
+  only:
+    - main
+  tags:
+    - app
