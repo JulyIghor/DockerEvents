@@ -6,10 +6,11 @@ build:
   allow_failure: false
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - apk add --no-cache docker-cli-buildx
   script:
-    - docker build
-      --compress --pull
+    - docker buildx build
+      --platform linux/amd64,linux/arm64,linux/arm/v7
+      --compress --push
       -t ${CI_REGISTRY_IMAGE} .
-    - docker push ${CI_REGISTRY_IMAGE}
   only:
     - main
