@@ -11,6 +11,7 @@ build:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
     - apk add --no-cache docker-cli-buildx
     - docker buildx create --name BuildX --use
+    - docker buildx inspect --bootstrap
   script:
     - docker buildx build
       --platform ${PLATFORMS}
