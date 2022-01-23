@@ -98,7 +98,9 @@ Image: <code>'"`htmlEscape ${CONTAINER_IMAGE}`</code>"
         case "${EVENT_EXITCODE}" in
             132) EVENT_EXITCODE='SIGILL ('${EVENT_EXITCODE}')' ;;
             133) EVENT_EXITCODE='SIGTRAP ('${EVENT_EXITCODE}')' ;;
+            134) EVENT_EXITCODE='SIGABRT ('${EVENT_EXITCODE}')' ;;
             136) EVENT_EXITCODE='SIGFPE ('${EVENT_EXITCODE}')' ;;
+            137) EVENT_EXITCODE='SIGKILL ('${EVENT_EXITCODE}')' ;;
             138) EVENT_EXITCODE='SIGBUS ('${EVENT_EXITCODE}')' ;;
             139) EVENT_EXITCODE='SIGSEGV ('${EVENT_EXITCODE}')' ;;
             152) EVENT_EXITCODE='SIGXCPU ('${EVENT_EXITCODE}')' ;;
