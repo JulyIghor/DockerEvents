@@ -3,6 +3,6 @@ LABEL maintainer="julyighor@gmail.com"
 
 COPY docker_events.sh /usr/bin/
 
-RUN apk add --no-cache bash jq
+RUN apk add --no-cache bash jq netcat-openbsd
 
 ENTRYPOINT "docker_events.sh"
