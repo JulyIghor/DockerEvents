@@ -7,7 +7,7 @@ By default it is sending container `start/stop/unhealthy` status for non zero ex
 
 You can define `HOST_NAME` for each instance, or mount `/etc/hostname` as read only. That will be used in notification message title.
 
-Also you can set up filters using environment variables to get notifications you need. Use bash patterns [https://wiki.bash-hackers.org/syntax/pattern](https://wiki.bash-hackers.org/syntax/pattern)
+Also you can set up filters using environment variables to get notifications you need. Use bash patterns [wiki.bash-hackers.org/syntax/pattern](https://wiki.bash-hackers.org/syntax/pattern)
 
 # Environment variables
 `TELEGRAM_API_TOKEN` - Telegram bot API key\
@@ -25,5 +25,9 @@ Also you can set up filters using environment variables to get notifications you
 `docker run -d --name='DockerEvents' -e 'TELEGRAM_API_TOKEN'='..' -e 'TELEGRAM_GROUP_ID'='..' -v '/var/run/docker.sock':'/var/run/docker.sock':'ro' -v '/etc/hostname':'/etc/hostname':'ro' --cpus="0.1" -m 50M --restart always 'julyighor/dockerevents:latest'`
 
 # Source code Mirrors
-[https://gitlab.com/ighor/DockerEvents](https://gitlab.com/ighor/DockerEvents)\
-[https://github.com/JulyIghor/DockerEvents](https://github.com/JulyIghor/DockerEvents)
+[gitlab.com/ighor/DockerEvents](https://gitlab.com/ighor/DockerEvents)\
+[github.com/JulyIghor/DockerEvents](https://github.com/JulyIghor/DockerEvents)
+
+# Docker registry
+[hub.docker.com/r/julyighor/dockerevents](https://hub.docker.com/r/julyighor/dockerevents)
+[registry.gitlab.com/ighor/dockerevents](https:// registry.gitlab.com/ighor/dockerevents)
