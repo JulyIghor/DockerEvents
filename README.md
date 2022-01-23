@@ -1,5 +1,5 @@
 # Docker Events
-Bash script that posts Docker Events to Telegram. It is made to use low RAM and CPU usage.
+A simple Bash script that posts Docker Events to Telegram. It is minimal implementation and it is using a few MB of RAM and low CPU usage.
 
 # Environment variables
 `TELEGRAM_API_TOKEN` - Telegram bot API key\
@@ -13,5 +13,9 @@ Bash script that posts Docker Events to Telegram. It is made to use low RAM and 
 
 `HOST_NAME` - define a host name for notifications, by default it reads the `/etc/hostname` file
 
-# Example
+# Example commands
 `docker run -d --name='DockerEvents' -e 'TELEGRAM_API_TOKEN'='..' -e 'TELEGRAM_GROUP_ID'='..' -v '/var/run/docker.sock':'/var/run/docker.sock':'ro' -v '/etc/hostname':'/etc/hostname':'ro' --cpus="0.1" -m 50M --restart always 'julyighor/dockerevents:latest'`
+
+# Source code Mirrors
+`https://gitlab.com/ighor/DockerEvents`\
+`https://github.com/JulyIghor/DockerEvents`
