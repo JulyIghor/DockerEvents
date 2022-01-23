@@ -151,10 +151,10 @@ function urlencode {
 }
 
 FILTERS=$(urlencode "{\"type\":`array2json ${FILTER_TYPES[@]}`,\"event\":`array2json ${FILTER_EVENTS[@]}`}")
-URL="/events?filters=${FILTERS}"
+URL="http://docker/events?filters=${FILTERS}"
 
 printVersion
 echo -e 'Listening '"${DOCKER_SOCKET}"
 
-echo -e 'GET '"${URL}"' HTTP/1.0\r\n' | nc -U "${DOCKER_SOCKET}" |
+curl -s --no-buffer -XGET --unix-socket "${DOCKER_SOCKET}" "${URL}" |
 while read message; do docker_event ${message}; done;
