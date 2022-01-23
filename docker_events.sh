@@ -104,9 +104,13 @@ function docker_event {
         STATE_ERROR="${INSPECT[0]}"
         RESTART_COUNT="${INSPECT[1]}"
         RESTART_POLICY="${INSPECT[2]}"
+
+        [[ "${RESTART_COUNT}" == +(0|null) ]] && RESTART_COUNT=''
+        [[ "${RESTART_POLICY}" == +(null) ]] && RESTART_POLICY=''
+        [[ "${STATE_ERROR}" == +(null) ]] && STATE_ERROR=''
     else
         STATE_ERROR=''
-        RESTART_COUNT='0'
+        RESTART_COUNT=''
         RESTART_POLICY=''
     fi
     [[ "${RESTART_POLICY}" == ${FILTER_RESTART_POLICY} ]] || { echo "skipping ${CONTAINER_NAME} since FILTER_RESTART_POLICY (${RESTART_POLICY}) not match filter ${FILTER_RESTART_POLICY}"; return; }
@@ -154,9 +158,6 @@ Status <b>'"`htmlEscape ${EVENT_STATUS^^}`"'</b>
         ;;
     esac
     [ -z "${MESSAGE}" ] && { echo "skipping ${CONTAINER_NAME} since MESSAGE is empty"; return; }
-
-    [[ "${RESTART_COUNT}" == +(0|null) ]] && RESTART_COUNT=''
-    [[ "${STATE_ERROR}" == +(null) ]] && STATE_ERROR=''
 
     [ -z "${STATE_ERROR}" ] || STATE_ERROR="State error: <b>`htmlEscape ${STATE_ERROR}`</b>\n"
     [ -z "${RESTART_COUNT}" ] || RESTART_COUNT="Restarts: <b>`htmlEscape ${RESTART_COUNT}`</b>\n"
