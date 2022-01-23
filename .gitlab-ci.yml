@@ -2,6 +2,8 @@ build:
   image: docker:latest
   stage: build
   allow_failure: false
+  variables:
+    PLATFORMS: "linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm/v7,linux/arm/v6"
   services:
     - docker:dind
   before_script:
@@ -9,7 +11,6 @@ build:
     - apk add --no-cache docker-cli-buildx
     - docker buildx create --name BuildX --use
   script:
-    - PLATFORMS=`docker buildx inspect --bootstrap | grep Platforms | cut -d ' ' -f2- | sed 's/ *//g'`
     - echo Building for platforms ${PLATFORMS}
     - docker buildx build
       --platform "${PLATFORMS}"
