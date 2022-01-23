@@ -30,4 +30,4 @@ Also you can set up filters using environment variables to get notifications you
 
 # Docker registry
 [hub.docker.com/r/julyighor/dockerevents](https://hub.docker.com/r/julyighor/dockerevents)
-[registry.gitlab.com/ighor/dockerevents](https:// registry.gitlab.com/ighor/dockerevents)
+[registry.gitlab.com/ighor/dockerevents](https://registry.gitlab.com/ighor/dockerevents)
