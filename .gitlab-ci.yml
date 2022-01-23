@@ -1,7 +1,9 @@
 build:
-  image: docker:dind
+  image: docker:latest
   stage: build
   allow_failure: false
+  services:
+    - docker:dind
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
     - apk add --no-cache docker-cli-buildx
