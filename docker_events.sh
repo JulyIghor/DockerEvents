@@ -1,8 +1,12 @@
 #!/bin/bash
 # https://github.com/JulyIghor/DockerEvents
 
+shopt -s extglob
+set +H
+
 function printVersion {
-echo -e "Docker Events v1.0\nhttps://github.com/JulyIghor/DockerEvents\n"
+echo -e 'Docker Events v1.0
+https://github.com/JulyIghor/DockerEvents'
 }
 
 function printHelp {
@@ -12,11 +16,14 @@ echo -e "Usage: `basename $0` [params]
 TELEGRAM_API_TOKEN='..' - Telegram bot API key
 TELEGRAM_GROUP_ID='..' - Telegram group id
 
-FILTER_NAME='.*' - filter container name
-FILTER_IMAGE='.*' - filter image name
-FILTER_HEALTH='.*' - filter health status (default: ^((?!healthy).)*$)
-FILTER_EXITCODE='.*' - filter exit code (default: ^[^0]$|.{2,})
-FILTER_PROJECT='.*' - filter project name (default: .{1,})"
+FILTER_NAME='+(*)' - filter container name
+FILTER_IMAGE='+(*)' - filter image name
+FILTER_HEALTH='+(*)' - filter health status (default: !(healthy))
+FILTER_EXITCODE='+(*)' - filter exit code (default: !(0|130))
+FILTER_RESTART_POLICY='+(*)' - filter restart policy (default: !(no))
+
+HOST_NAME='..' - define a host name for notifications, by default it reads the /etc/hostname file
+"
 }
 
 function printError {
@@ -24,22 +31,39 @@ function printError {
     printHelp
 }
 
-[ -z "${FILTER_TYPES}" ]    && FILTER_TYPES=('container')
-[ -z "${FILTER_EVENTS}" ]   && FILTER_EVENTS=('start' 'die' 'health_status')
-[ -z "${FILTER_NAME}" ]     && FILTER_NAME='.*'
-[ -z "${FILTER_IMAGE}" ]    && FILTER_IMAGE='.*'
-[ -z "${FILTER_HEALTH}" ]   && FILTER_HEALTH='^((?!healthy).)*$' # healthy, unhealthy
-[ -z "${FILTER_EXITCODE}" ] && FILTER_EXITCODE='^[^0]$|.{2,}' # 0, ..
-[ -z "${FILTER_EVENTS}" ]   && FILTER_PROJECT='.{1,}' # any not empty
+function printConfig {
+echo -e "
+HOST_NAME: ${HOST_NAME}
+DOCKER_SOCKET: ${DOCKER_SOCKET}
 
-[ -z "${HOST_NAME}" ]      && HOST_NAME=`cat /etc/hostname`
-[ -z "${TELEGRAM_API_TOKEN}" ] && { printError "TELEGRAM_API_TOKEN is not defined"; exit 1; }
-[ -z "${TELEGRAM_GROUP_ID}" ] && { printError "TELEGRAM_GROUP_ID is not defined"; exit 1; }
-[ -z "${HOST_NAME}" ]      && { printError "HOST_NAME is not defined"; exit 1; }
+FILTER_TYPES: ${FILTER_TYPES[@]}
+FILTER_EVENTS: ${FILTER_EVENTS[@]}
+FILTER_NAME: ${FILTER_NAME}
+FILTER_IMAGE: ${FILTER_IMAGE}
+FILTER_HEALTH: ${FILTER_HEALTH}
+FILTER_EXITCODE: ${FILTER_EXITCODE}
+FILTER_EVENTS: ${FILTER_TYPES}
+FILTER_RESTART_POLICY: ${FILTER_RESTART_POLICY}
+"
+}
 
-[ -z "${DOCKER_SOCKET}" ]  && DOCKER_SOCKET='/var/run/docker.sock'
+[ -z "${FILTER_TYPES}" ]          && FILTER_TYPES=('container')
+[ -z "${FILTER_EVENTS}" ]         && FILTER_EVENTS=('start' 'die' 'health_status')
+[ -z "${FILTER_NAME}" ]           && FILTER_NAME='+(*)'
+[ -z "${FILTER_IMAGE}" ]          && FILTER_IMAGE='+(*)'
+[ -z "${FILTER_HEALTH}" ]         && FILTER_HEALTH='!(healthy)' # healthy, unhealthy
+[ -z "${FILTER_EXITCODE}" ]       && FILTER_EXITCODE='!(0|130)' # 0, ..
+[ -z "${FILTER_RESTART_POLICY}" ] && FILTER_RESTART_POLICY='!(no)' # exclude 'no'
 
-JQ_FORMAT='.status,.Action,.Actor.Attributes.name,.Actor.Attributes.image,.Actor.Attributes.exitCode,.time,.from,.Actor.Attributes["com.docker.compose.project"]'
+[ -z "${HOST_NAME}" ]             && HOST_NAME=`cat /etc/hostname`
+[ -z "${TELEGRAM_API_TOKEN}" ]    && { printError "TELEGRAM_API_TOKEN is not defined"; exit 1; }
+[ -z "${TELEGRAM_GROUP_ID}" ]     && { printError "TELEGRAM_GROUP_ID is not defined"; exit 1; }
+[ -z "${HOST_NAME}" ]             && { printError "HOST_NAME is not defined"; exit 1; }
+
+[ -z "${DOCKER_SOCKET}" ]         && DOCKER_SOCKET='/var/run/docker.sock'
+
+JQ_FORMAT_EVENT='.status,.Action,.Actor.Attributes.name,.Actor.Attributes.image,.Actor.Attributes.exitCode,.time,.from,.id'
+JQ_FORMAT_INSPECT='[.][0]|.State.Error,.RestartCount,.HostConfig.RestartPolicy.Name'
 
 function htmlEscape {
     local s
@@ -63,24 +87,30 @@ curl -X POST -s \
 }
 
 function docker_event {
-    [[ ${1:0:1} != "{" ]] && return
-
-    readarray -t PARAMS < <(echo -e "$@" | jq -r "${JQ_FORMAT}")
+    readarray -t PARAMS < <(echo -e "$@" | jq -r "${JQ_FORMAT_EVENT}")
     if [ "${#PARAMS[@]}" -ne 8 ]; then
+        echo params missmatch "${#PARAMS[@]}", expected 8
         return;
     fi
-
     CONTAINER_NAME="${PARAMS[2]}"
     CONTAINER_IMAGE="${PARAMS[3]}"
     EVENT_EXITCODE="${PARAMS[4]}"
     CONTAINER_FROM="${PARAMS[6]}" # unused
-    COMPOSE_PROJECT="${PARAMS[7]}"
+    CONTAINER_ID="${PARAMS[7]}"
 
-    [[ "${COMPOSE_PROJECT}" == "null" ]] && COMPOSE_PROJECT=''
-
-    [[ "${CONTAINER_NAME}" =~ ${FILTER_NAME} ]] || return
-    [[ "${CONTAINER_IMAGE}" =~ ${FILTER_IMAGE} ]] || return
-    [[ "${COMPOSE_PROJECT}" =~ ${FILTER_PROJECT} ]] || return
+    [[ "${CONTAINER_NAME}" == ${FILTER_NAME} ]] || { echo "skipping ${CONTAINER_NAME} since FILTER_NAME not match filter ${FILTER_NAME}"; return; }
+    [[ "${CONTAINER_IMAGE}" == ${FILTER_IMAGE} ]] || { echo "skipping ${CONTAINER_NAME} since CONTAINER_IMAGE (${CONTAINER_IMAGE}) not match filter ${FILTER_IMAGE}"; return; }
+    readarray -t INSPECT < <(curl -s -XGET --unix-socket "${DOCKER_SOCKET}" "http://docker/containers/${CONTAINER_ID}/json" | jq -r "${JQ_FORMAT_INSPECT}")
+    if [ "${#INSPECT[@]}" -eq 3 ]; then
+        STATE_ERROR="${INSPECT[0]}"
+        RESTART_COUNT="${INSPECT[1]}"
+        RESTART_POLICY="${INSPECT[2]}"
+    else
+        STATE_ERROR=''
+        RESTART_COUNT='0'
+        RESTART_POLICY=''
+    fi
+    [[ "${RESTART_POLICY}" == ${FILTER_RESTART_POLICY} ]] || { echo "skipping ${CONTAINER_NAME} since FILTER_RESTART_POLICY (${RESTART_POLICY}) not match filter ${FILTER_RESTART_POLICY}"; return; }
 
     EVENT_TIME=`date -u +"%Y-%m-%d %H:%M:%S UTC" -d '@'${PARAMS[5]}`
 
@@ -89,12 +119,10 @@ function docker_event {
       start)
 MESSAGE='
 Container <b>STARTED</b>
-Name: <code>'"`htmlEscape ${CONTAINER_NAME}`"'</code>
-Project: <code>'"`htmlEscape ${COMPOSE_PROJECT}`"'</code>
-Image: <code>'"`htmlEscape ${CONTAINER_IMAGE}`</code>"
+'
         ;;
       die)
-        [[ "${EVENT_EXITCODE}" =~ ${FILTER_EXITCODE} ]] || return
+        [[ "${EVENT_EXITCODE}" == ${FILTER_EXITCODE} ]] || { echo "skipping ${CONTAINER_NAME} since EVENT_EXITCODE (${EVENT_EXITCODE}) not match filter ${FILTER_EXITCODE}"; return; }
         case "${EVENT_EXITCODE}" in
             132) EVENT_EXITCODE='SIGILL ('${EVENT_EXITCODE}')' ;;
             133) EVENT_EXITCODE='SIGTRAP ('${EVENT_EXITCODE}')' ;;
@@ -111,28 +139,29 @@ Image: <code>'"`htmlEscape ${CONTAINER_IMAGE}`</code>"
         esac
 MESSAGE='
 Container <b>STOPPED</b>
-Name: <code>'"`htmlEscape ${CONTAINER_NAME}`"'</code>
-Project: <code>'"`htmlEscape ${COMPOSE_PROJECT}`"'</code>
-Image: <code>'"`htmlEscape ${CONTAINER_IMAGE}`"'</code>
 Exit code: <b>'"`htmlEscape ${EVENT_EXITCODE}`"'</b>'
         ;;
       health_status:*)
         EVENT_STATUS="${PARAMS[0]:15}"
-        [[ "${EVENT_STATUS}" =~ ${FILTER_HEALTH} ]] || return
+        [[ "${EVENT_STATUS}" == ${FILTER_HEALTH} ]] || { echo "skipping ${CONTAINER_NAME} since EVENT_STATUS (${EVENT_STATUS}) not match filter ${FILTER_HEALTH}"; return; }
 MESSAGE='
 Status <b>'"`htmlEscape ${EVENT_STATUS^^}`"'</b>
-Name: <code>'"`htmlEscape ${CONTAINER_NAME}`"'</code>
-Project: <code>'"`htmlEscape ${COMPOSE_PROJECT}`"'</code>
-Image: <code>'"`htmlEscape ${CONTAINER_IMAGE}`</code>"
+'
         ;;
       *)
         echo 'Unknown event action "'"${PARAMS[1]}"\"
         return
         ;;
     esac
-    [ -z "${MESSAGE}" ] && return
+    [ -z "${MESSAGE}" ] && { echo "skipping ${CONTAINER_NAME} since MESSAGE is empty"; return; }
 
-    telegram_message "${TITLE}\n${MESSAGE}\n<code>${EVENT_TIME}</code>"
+    [ -z "${STATE_ERROR}" ] || STATE_ERROR="State error: <code>`htmlEscape ${STATE_ERROR}`</code>\n"
+    [ "${RESTART_COUNT}" == "0" ] && RESTART_COUNT=''
+    [ -z "${RESTART_COUNT}" ] || RESTART_COUNT="Restarts: <b>`htmlEscape ${RESTART_COUNT}`</b>\n"
+    [ -z "${CONTAINER_NAME}" ] || CONTAINER_NAME="Name: <code>`htmlEscape ${CONTAINER_NAME}`</code>\n"
+    [ -z "${CONTAINER_IMAGE}" ] || CONTAINER_IMAGE="Name: <code>`htmlEscape ${CONTAINER_IMAGE}`</code>\n"
+
+    telegram_message "${TITLE}\n${MESSAGE}${CONTAINER_NAME}${CONTAINER_IMAGE}${RESTART_COUNT}${STATE_ERROR}\n<code>${EVENT_TIME}</code>"
 }
 
 function array2json { printf '%s\n' "$@" | jq -Rc . | jq -sc .; }
@@ -156,7 +185,7 @@ FILTERS=$(urlencode "{\"type\":`array2json ${FILTER_TYPES[@]}`,\"event\":`array2
 URL="http://docker/events?filters=${FILTERS}"
 
 printVersion
-echo -e 'Listening '"${DOCKER_SOCKET}"
+printConfig
 
 curl -s --no-buffer -XGET --unix-socket "${DOCKER_SOCKET}" "${URL}" |
 while read message; do docker_event ${message}; done;
