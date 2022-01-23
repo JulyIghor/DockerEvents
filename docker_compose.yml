@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  DockerEvents:
+    image: registry.gitlab.com/ighor/dockerevents:latest
+    container_name: DockerEvents
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/hostname:/etc/hostname:ro
+    environment:
+      TELEGRAM_NOTIFIER_BOT_TOKEN:
+      TELEGRAM_NOTIFIER_CHAT_ID:
+    deploy:
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: '128M'
