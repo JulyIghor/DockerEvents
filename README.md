@@ -1,6 +1,14 @@
 # Docker Events
 A simple Bash script that posts Docker Events to Telegram. It is minimal implementation and it is using a few MB of RAM and low CPU usage.
 
+It is built for all architectures supported by `alpine` docker image.
+
+By default it is sending container `start/stop/unhealthy` status for non zero exit codes and ignoring containers that started with the restart policy value `no`.
+
+You can define `HOST_NAME` for each instance, or mount `/etc/hostname` as read only. That will be used in notification message title.
+
+Also you can set up filters using environment variables to get notifications you need. Use bash patterns [https://wiki.bash-hackers.org/syntax/pattern](https://wiki.bash-hackers.org/syntax/pattern)
+
 # Environment variables
 `TELEGRAM_API_TOKEN` - Telegram bot API key\
 `TELEGRAM_GROUP_ID` - Telegram group id
