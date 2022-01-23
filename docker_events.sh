@@ -138,7 +138,8 @@ Container <b>STARTED</b>
         esac
 MESSAGE='
 Container <b>STOPPED</b>
-Exit code: <b>'"`htmlEscape ${EVENT_EXITCODE}`"'</b>'
+Exit code: <b>'"`htmlEscape ${EVENT_EXITCODE}`"'</b>
+'
         ;;
       health_status:*)
         EVENT_STATUS="${PARAMS[0]:15}"
@@ -154,13 +155,16 @@ Status <b>'"`htmlEscape ${EVENT_STATUS^^}`"'</b>
     esac
     [ -z "${MESSAGE}" ] && { echo "skipping ${CONTAINER_NAME} since MESSAGE is empty"; return; }
 
+    [[ "${RESTART_COUNT}" == +(0|null) ]] && RESTART_COUNT=''
+    [[ "${STATE_ERROR}" == +(null) ]] && STATE_ERROR=''
+
     [ -z "${STATE_ERROR}" ] || STATE_ERROR="State error: <code>`htmlEscape ${STATE_ERROR}`</code>\n"
-    [ "${RESTART_COUNT}" == "0" ] && RESTART_COUNT=''
     [ -z "${RESTART_COUNT}" ] || RESTART_COUNT="Restarts: <b>`htmlEscape ${RESTART_COUNT}`</b>\n"
     [ -z "${CONTAINER_NAME}" ] || CONTAINER_NAME="Name: <code>`htmlEscape ${CONTAINER_NAME}`</code>\n"
     [ -z "${CONTAINER_IMAGE}" ] || CONTAINER_IMAGE="Name: <code>`htmlEscape ${CONTAINER_IMAGE}`</code>\n"
+    [ -z "${RESTART_POLICY}" ] || RESTART_POLICY="Restart policy: <code>`htmlEscape ${RESTART_POLICY}`</code>\n"
 
-    telegram_message "${TITLE}\n${MESSAGE}${CONTAINER_NAME}${CONTAINER_IMAGE}${RESTART_COUNT}${STATE_ERROR}\n<code>${EVENT_TIME}</code>"
+    telegram_message "${TITLE}\n${MESSAGE}${CONTAINER_NAME}${CONTAINER_IMAGE}${RESTART_POLICY}${RESTART_COUNT}${STATE_ERROR}\n<code>${EVENT_TIME}</code>"
 }
 
 function array2json { printf '%s\n' "$@" | jq -Rc . | jq -sc .; }
