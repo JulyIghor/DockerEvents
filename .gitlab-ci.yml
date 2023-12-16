@@ -12,6 +12,7 @@ build:
     - PLATFORMS=`docker buildx inspect --bootstrap | grep Platforms | cut -d ' ' -f2- | sed 's/ *//g; s#linux/riscv64,##g'`
     - echo Building for platforms ${PLATFORMS}
     - docker buildx build
+      --provenance=false
       --platform "${PLATFORMS}"
       --compress --push
       -t ${CI_REGISTRY_IMAGE} .
