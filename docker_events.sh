@@ -15,6 +15,7 @@ function printHelp {
 
 TELEGRAM_API_TOKEN='..' - Telegram bot API key
 TELEGRAM_GROUP_ID='..' - Telegram group id
+TELEGRAM_MENTION='..' - Telegram mention list (supports multiple usernames separated by spaces)
 
 FILTER_NAME='+(*)' - filter container name
 FILTER_IMAGE='+(*)' - filter image name
@@ -23,6 +24,7 @@ FILTER_EXITCODE='+(*)' - filter exit code (default: !(0|130))
 FILTER_RESTART_POLICY='+(*)' - filter restart policy (default: !(no))
 
 HOST_NAME='..' - define a host name for notifications, by default it reads the /etc/hostname file
+TIMEZONE='..' - optional time zone for event time, for example America/New_York
 "
 }
 
@@ -63,6 +65,11 @@ FILTER_RESTART_POLICY: ${FILTER_RESTART_POLICY}
     printError "TELEGRAM_GROUP_ID is not defined"
     exit 1
 }
+
+[ -z "${TELEGRAM_MENTION}" ] && TELEGRAM_MENTION=''
+
+[ -z "${TIMEZONE}" ] && TIMEZONE='UTC'
+
 [ -z "${HOST_NAME}" ] && {
     printError "HOST_NAME is not defined"
     exit 1
@@ -85,12 +92,18 @@ function htmlEscape {
 TITLE="Docker on <b>$(htmlEscape ${HOST_NAME})</b>"
 
 function telegram_message {
+    MENTION=''
+    if [ -n "${TELEGRAM_MENTION}" ]; then
+        for USER in ${TELEGRAM_MENTION}; do
+            MENTION="${MENTION}${USER} "
+        done
+    fi
     MESSAGE="$@"
 
     echo -e "${MESSAGE}"
     curl -X POST -s \
         -H 'Content-Type: application/json' \
-        -d '{"chat_id": "'${TELEGRAM_GROUP_ID}'", "text": "'"${MESSAGE}"'", "parse_mode": "HTML"}' \
+        -d '{"chat_id": "'${TELEGRAM_GROUP_ID}'", "text": "'"${MESSAGE}\n${MENTION}"'", "parse_mode": "HTML"}' \
         'https://api.telegram.org/bot'${TELEGRAM_API_TOKEN}'/sendMessage' >/dev/null
 }
 
@@ -133,7 +146,7 @@ function docker_event {
         return
     }
 
-    EVENT_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC" -d '@'${PARAMS[5]})
+    EVENT_TIME=$(TZ="${TIMEZONE}" date +"%Y-%m-%d %H:%M:%S ${TIMEZONE}" -d '@'${PARAMS[5]})
 
     MESSAGE=''
     case "${PARAMS[1]}" in
