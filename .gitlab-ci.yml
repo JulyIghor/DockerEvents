@@ -9,7 +9,7 @@ build:
     - apk add --no-cache docker-cli-buildx
     - docker buildx create --name BuildX --use
   script:
-    - PLATFORMS=`docker buildx inspect --bootstrap | grep Platforms | cut -d ' ' -f2- | sed 's/ *//g; s#linux/riscv64,##g'`
+    - PLATFORMS="$(docker buildx inspect --bootstrap | grep Platforms | cut -d ' ' -f2- | tr -d ' ' | sed 's/,/\n/g' | grep -v 'linux/riscv64' | grep -v 'linux/loong64' | grep -v 'linux/arm/v6' | paste -sd ',' -)"
     - echo Building for platforms ${PLATFORMS}
     - docker buildx build
       --provenance=false
