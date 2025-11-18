@@ -12,6 +12,7 @@ Also you can set up filters using environment variables to get notifications you
 # Environment variables
 `TELEGRAM_API_TOKEN` - Telegram bot API key\
 `TELEGRAM_GROUP_ID` - Telegram group id
+`TELEGRAM_MENTION` - list of Telegram usernames to mention, separated by spaces
 
 `FILTER_NAME` - filter container name (default: `+(*)`)\
 `FILTER_IMAGE` - filter image name (default: `+(*)`)\
@@ -20,6 +21,7 @@ Also you can set up filters using environment variables to get notifications you
 `FILTER_RESTART_POLICY` - filter restart policy (default: `!(no)`)
 
 `HOST_NAME` - define a host name for notifications, by default it reads the `/etc/hostname` file
+`TIMEZONE` - optional time zone for event time, for example `America/New_York`
 
 # Example commands
 `docker run -d --name='DockerEvents' -e 'TELEGRAM_API_TOKEN'='..' -e 'TELEGRAM_GROUP_ID'='..' -v '/var/run/docker.sock':'/var/run/docker.sock':'ro' -v '/etc/hostname':'/etc/hostname':'ro' --cpus="0.1" -m 50M --restart always 'julyighor/dockerevents:latest'`

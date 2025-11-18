@@ -5,7 +5,7 @@ shopt -s extglob
 set +H
 
 function printVersion {
-    echo -e 'Docker Events v1.0
+    echo -e 'Docker Events v1.1
 https://github.com/JulyIghor/DockerEvents'
 }
 
